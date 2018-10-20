@@ -65,7 +65,11 @@ funcGetAllDailyStockPrice <- function(){
   
   # Merge on exchange and exclude NYSE (WRDS charges extra for NYSE tick data)
   dt.stock_final <- merge(dt.stock, dt_symbols, by = c("symbol"))
+<<<<<<< HEAD
   write.csv(x = dt.stock_final, "stock_eod_data.csv")
+=======
+  write.csv("stock_eod_data.csv")
+>>>>>>> 7ab45da75659e021add868d2219c13965e282fa6
 }
 
 
