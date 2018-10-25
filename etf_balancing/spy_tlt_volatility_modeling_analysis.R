@@ -142,4 +142,10 @@ dt.spy_vol_forecast <- funcArimaGarchVol(chr.symbol = "SPY",
                                          int.window = 252)
 
 
+dt.tlt_vol_forecast <- funcArimaGarchVol(chr.symbol = "TLT", 
+                                         start_date = "2004-01-01", 
+                                         end_date = "2018-10-25", 
+                                         int.window = 252)
+
+
 
