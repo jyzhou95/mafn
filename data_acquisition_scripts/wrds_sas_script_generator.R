@@ -75,12 +75,13 @@ options source;
                    Title 'Final output -- XX min interval';
                    
                    proc export data= xtemp2
-                   outfile= '/home/columbia/jyz2111/sas_test_files/tick_data_folder/{int_year}/{int_year}.csv'
+                   outfile= '/home/columbia/jyz2111/sas_test_files/tick_data_folder/year_{int_year}/{int_year}.csv'
                    dbms=CSV REPLACE;
                    putnames=YES;
                    run;
                    ")
   # Write SAS code
-  write_file(chr_base, path = paste0("C:/Users/jyzho/Documents/GitHub/mafn/data_acquisition_scripts/scraper", int_year, ".sas"))
+  # write_file(chr_base, path = paste0("C:/Users/jyzho/Documents/GitHub/mafn/data_acquisition_scripts/scraper", int_year, ".sas"))
+  write_file(chr_base, path = paste0("D:/Desktop/mafn/data_acquisition_scripts/scraper", int_year, ".sas"))
 }
 

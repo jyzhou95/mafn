@@ -50,7 +50,7 @@ options source;
                    Title 'Final output -- XX min interval';
                    
                    proc export data= xtemp2
-                   outfile= '/home/columbia/jyz2111/sas_test_files/tick_data_folder/2005/2005.csv'
+                   outfile= '/home/columbia/jyz2111/sas_test_files/tick_data_folder/year_2005/2005.csv'
                    dbms=CSV REPLACE;
                    putnames=YES;
                    run;

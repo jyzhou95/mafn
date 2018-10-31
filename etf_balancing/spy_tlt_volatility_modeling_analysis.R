@@ -7,7 +7,7 @@ library(data.table)
 library(ggplot2)
 library(glue)
 library(parallel)
-
+library(plotly)
 
 funcGetStockPrice <- function(vec.symbols, start_date = Sys.Date() - 20, end_date = Sys.Date(), bln.all = FALSE, 
                               verbose = FALSE){
@@ -78,7 +78,7 @@ funcArimaGarchVol <- function(chr.symbol, start_date, end_date, int.window, verb
     dt.forecast <- dt.stock[int.window+x+1]
     
     # Get our returns
-    returnsOffSet <- dt.stock[x:int.window+x]$vol_90
+    returnsOffSet <- dt.stock[x:(int.window+x-1)]$vol_90
     
     # Fit the ARIMA model
     final.aic <- Inf
@@ -137,15 +137,33 @@ funcArimaGarchVol <- function(chr.symbol, start_date, end_date, int.window, verb
 }
 
 dt.spy_vol_forecast <- funcArimaGarchVol(chr.symbol = "SPY", 
-                                         start_date = "2004-01-01", 
+                                         start_date = "2006-01-01", 
                                          end_date = "2018-10-25", 
                                          int.window = 252)
 
 
 dt.tlt_vol_forecast <- funcArimaGarchVol(chr.symbol = "TLT", 
-                                         start_date = "2004-01-01", 
+                                         start_date = "2006-01-01", 
                                          end_date = "2018-10-25", 
                                          int.window = 252)
 
+dt.spy_plot <- ggplot() + geom_line(data = dt.spy_vol_forecast, 
+                                    aes(x = dt, y = vol_90, group = 1), 
+                                    color = "black", size = 1.5) +
+               geom_line(data = dt.spy_vol_forecast, 
+                         aes(x = dt, y = pred_mov, group = 1), 
+                         color = "red", size = 1.5) + theme_bw(base_size = 15) +
+               xlab("Date") + ylab("Volatility")
+
+dt.tlt_plot <- ggplot() + geom_line(data = dt.tlt_vol_forecast, 
+                                    aes(x = dt, y = vol_90, group = 1), 
+                                    color = "black", size = 1.5) +
+  geom_line(data = dt.tlt_vol_forecast, 
+            aes(x = dt, y = pred_mov, group = 1), 
+            color = "red", size = 1.5) + theme_bw(base_size = 15) +
+  xlab("Date") + ylab("Volatility")
+
+ggplotly(dt.spy_plot)
+ggplotly(dt.tlt_plot)
 
 
