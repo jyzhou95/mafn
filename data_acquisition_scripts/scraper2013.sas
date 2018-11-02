@@ -1,29 +1,4 @@
-library(glue)
-library(tidyquant)
-library(data.table)
-library(XLConnect)
-
-dt_symbol_list <- data.table(TTR::stockSymbols(exchange = "NYSE"))
-dt_symbol_list <- dt_symbol_list[!is.na(MarketCap)]
-dt_symbol_list <- dt_symbol_list[!is.na(IPOyear) & IPOyear < 2005]
-
-
-toInteger <- function(income){
-  amt <- as.numeric(gsub("[A-Z,$]", "", income))
-  multiplier <- substring(income, nchar(income))
-  multiplier <- dplyr::case_when(multiplier == "M" ~ 1e6,
-                                 multiplier == "B" ~ 1e9,
-                                 TRUE ~ 1) # you can add on other conditions for more suffixes
-  amt*multiplier
-}
-
-# Get top 100 stocks
-dt_symbol_list$MarketCap <- toInteger(dt_symbol_list$MarketCap)
-
-dt_symbol_list_final <- head(dt_symbol_list[order(MarketCap, decreasing = TRUE)], 100)
-
-for (int_year in c(2005:2015)){
-  chr_base <- glue("libname taq'/wrds/taq/sasdata'; *After 2014 use this;
+libname taq'/wrds/taq/sasdata'; *After 2014 use this;
 options source;
                    
                    %let start_time = '9:30:00't; * starting time;
@@ -31,7 +6,7 @@ options source;
                    
                    * Time is between 9:30am and 4:00pm, retrieving SYMBOL DATE TIME and PRICE;
                    data my_temp;
-                   set taq.cq_{int_year}:;
+                   set taq.cq_2013:;
                    where symbol in ('TSM','ORCL','CRM','ACN','UPS','RIO','GS','HDB','BLK','LFC',
                    'EL','ING','TEF','COF','LVS','MET','CCL','PRU','CHA','NOK',
                    'ROP','RSG','DLR','RCL','A','PKX','BXP','ET','ESS','PAA','KEP',
@@ -75,13 +50,7 @@ options source;
                    Title 'Final output -- XX min interval';
                    
                    proc export data= xtemp2
-                   outfile= '/home/columbia/jyz2111/sas_test_files/tick_data_folder/year_{int_year}/{int_year}.csv'
+                   outfile= '/home/columbia/jyz2111/sas_test_files/tick_data_folder/year_2013/2013.csv'
                    dbms=CSV REPLACE;
                    putnames=YES;
                    run;
-                   ")
-  # Write SAS code
-  # write_file(chr_base, path = paste0("C:/Users/jyzho/Documents/GitHub/mafn/data_acquisition_scripts/scraper", int_year, ".sas"))
-  write_file(chr_base, path = paste0("D:/Desktop/mafn/data_acquisition_scripts/scraper", int_year, ".sas"))
-}
-
