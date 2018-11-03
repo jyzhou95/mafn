@@ -9,8 +9,8 @@ funcWriteCsvFromOrderBook <- function(obj, file_name){
   num_stocks <- length(obj[[1]])
   
   dt.write.this <- rbindlist(lapply(1:num_stocks, function(X){
-    dt_temp <- obj[[x]][[1]]
-    chr_stock <- names(obj[[x]])
+    dt_temp <- data.table(obj[[x]][[1]])
+    chr_stock <- names(obj[[1]][x])
     dt_temp <- dt_temp[,list(time = Order.StatusTime,
                              symbol = chr_stock,
                              direction = Order.Side,
