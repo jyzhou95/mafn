@@ -11,6 +11,7 @@
 
 
 require(quantstrat)
+require(data.table)
 suppressWarnings(rm("order_book.macd",pos=.strategy))
 suppressWarnings(rm("account.macd","portfolio.macd",pos=.blotter))
 suppressWarnings(rm("account.st","portfolio.st","stock.str","stratMACD","startDate","initEq",'start_t','end_t'))
@@ -22,7 +23,7 @@ if(oldtz=='') {
 }
 
 
-stock.str='AAPL' # what are we trying it on
+stock.str='SPY' # what are we trying it on
 
 #MA parameters for MACD
 fastMA = 12 
@@ -114,9 +115,24 @@ add.rule(strat.st,name='ruleSignal',
 #end rules
 ####
 
-getSymbols(stock.str,from=startDate, to='2014-06-01', src='yahoo')
+# getSymbols(stock.str,from=startDate, to='2014-06-01', src='yahoo')
+
+SPY <- fread("~/GitHub/mafn/data_acquisition_scripts/stock_eod_data.csv")[symbol == "SPY"][,list(open,
+                                                                                 high,
+                                                                                 low,
+                                                                                 close,
+                                                                                 volume,
+                                                                                 adjusted_close,
+                                                                                 dt)]
+
+SPY <- funcConvertToXtsOHLC(data.frame(SPY)) 
+  
 start_t<-Sys.time()
-out<-applyStrategy(strat.st , portfolios=portfolio.st,parameters=list(nFast=fastMA, nSlow=slowMA, nSig=signalMA,maType=maType),verbose=TRUE)
+out<-applyStrategy(strat.st ,
+                   portfolios=portfolio.st,
+                   mktdata = SPY,
+                   parameters=list(nFast=fastMA, nSlow=slowMA, nSig=signalMA,maType=maType),
+                   verbose=TRUE)
 end_t<-Sys.time()
 print(end_t-start_t)
 
