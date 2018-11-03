@@ -31,8 +31,8 @@ funcWriteCsvFromOrderBookParallelized <- function(obj, file_name){
   # Load relevant libraries into workers
   clusterEvalQ(cl, library(data.table))
   dt.write.this <- rbindlist(clusterApply(cl, 1:num_stocks, function(x){
-    dt_temp <- obj[[x]][[1]]
-    chr_stock <- names(obj[[x]])
+    dt_temp <- data.table(obj[[x]][[1]])
+    chr_stock <- names(obj[[1]][x])
     dt_temp <- dt_temp[,list(time = Order.StatusTime,
                              symbol = chr_stock,
                              direction = Order.Side,
