@@ -1,0 +1,235 @@
+---
+title: "Carry_trade"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## CARRY TRADE
+
+```{r}
+library(blotter)
+library(quantstrat)
+library(quantmod)
+library(PerformanceAnalytics)
+library(zoo)
+library(TTR)
+library(devtools)
+require(DSTrading)
+require(IKTrading)
+library(imputeTS)
+library(forecast)
+library(dlm)
+library(tidyverse)
+
+#Supress warnings
+options("getSymbols.warning4.0" = FALSE)
+```
+
+LOAD DATA
+```{r}
+df <- read.csv("ecwb_spot.csv")
+df$Date <- as.Date(df$Date,format="%m/%d/%y 0:00")
+#duplicate IDR,delete NA column
+df = df[-7526,!names(df)=="IDR.1"]
+df_fwd <- read.csv("ecwb_forward_1m.csv")
+df_fwd$Date <- as.Date(df_fwd$Date,format="%m/%d/%y 0:00")
+df_fwd= df_fwd[-7505,]
+df_int <- read.csv("ecwb_int.csv")
+df_int$Date <- as.Date(df_int$Date,format="%m/%d/%y 0:00")
+df_int = df_int[-7526,!names(df_int)=="IDR.1"]
+```
+
+
+Cleaning up n/a's
+
+```{r}
+for ( i in 1:ncol(df[-1])) {
+  w = df[-1][i]; names(w) = paste(names(w),".Close",sep="");
+  ww = df_int[-1][i]; names(ww) = paste(names(ww),".Div",sep="");
+  w[,1] = as.numeric(levels(w[,1]))[w[,1]]
+  w = na.locf(w,option="locf")
+  ww[,1] = as.numeric(levels(ww[,1]))[ww[,1]]
+  z = cbind(df[1],w,ww)
+  z = as.xts(z[-1],order.by = z$Date)
+  #z = na.locf(z)
+  z = na.locf0(z)
+  assign(names(df)[-1][i], z)
+}
+for ( i in 1:ncol(df_fwd[-1])) {
+  w = df_fwd[-1][i]; names(w) = paste(names(w),".Close",sep="");
+  w[,1] = as.numeric(levels(w[,1]))[w[,1]]
+  z = cbind(df_fwd[1],w)
+  z = as.xts(z[-1],order.by = z$Date)
+  #z = na.locf(z)
+  z = na.locf0(z)
+  assign(names(df_fwd)[-1][i], z)
+}
+```
+
+Removing residuals from previous run
+
+```{r}
+#House Cleaning
+rm(list = ls(.blotter),envir = .blotter)
+
+#REMOVAL
+rm.strat(portfolio.st)
+rm.strat(strategy.st)
+```
+
+
+```{r}
+#Set currency
+currency('USD')
+#Set time
+Sys.setenv(TZ="UTC")
+
+#Set stock universe ####EDIT HERE
+stock.str= c(names(df)[-1],names(df_fwd)[-1])
+symbols = c(names(df)[-1],names(df_fwd)[-1])
+
+#Define the instrument type
+currency(stock.str,currency='USD',multiplier=1)
+
+#BOILERPLATE
+initDate="1990-01-01"
+tradeSize = 100000
+initEq= tradeSize * length(symbols)
+strategy.st <- portfolio.st <- account.st <- "CARRY"
+```
+
+
+Initialize Portfolio, Account, Orders
+
+```{r}
+initPortf(portfolio.st,symbols=stock.str,initDate = initDate)
+initAcct(account.st,portfolios=portfolio.st, initEq=initEq)
+initOrders(portfolio=portfolio.st, initDate = initDate)
+strategy(strategy.st, store=TRUE)
+stratMACROSS<- strategy(portfolio.st)
+```
+
+```{r}
+ARFO <- function(x,n=4,v=1){
+  #n = number of training years
+  #v = number of validation years
+  numna = floor(sum(is.na(x))/250)
+  numyears = floor((length(x))/250)
+  output = rep(NA,(numna+5)*250)
+  for (i in 1:(numyears-5 - numna)){
+    starting = 1+250*(i-1+numna); ending = 250*(i+4+numna)
+    valending = 250*(i+5+numna)
+    ourmodel = arima(x[starting:ending],order=c(1,1,0),method="CSS")
+    
+    # for (p in 1:2) for (d in 0:1) for (q in 1:2) {
+    #   ourmodel = arima(x[starting:ending],order = c(p,d,q))
+    #   ourmodel.aic = AIC(ourmodel)
+    #   ourfinalmodel.aic = Inf
+    #   if (ourmodel.aic < ourfinalmodel.aic) {
+    #     ourfinalmodel.aic = ourmodel.aic
+    #     finalorder = c(p,d,q)
+    #     ourfinalmodel = ourmodel
+    #   }
+    #}
+    output = c(output,predict(ourmodel,250)$pred)
+  }
+  ending = (numyears-1)*250;starting = ending - 1250
+  leftover = length(x) - numyears*250
+  ourmodel = arima(x[starting:ending],order=c(1,1,0),method="CSS")
+  output = c(output,predict(ourmodel,leftover)$pred)
+  output = as.xts(output,order.by=index(x))
+  return(output)
+}
+```
+
+Indicators, Rules, Signals
+```{r}
+stratMACROSS <- add.indicator(strategy = stratMACROSS, name = "SMA", arguments = list(x=quote(Cl(mktdata)), n=50),label= "ma50" )
+stratMACROSS <- add.indicator(strategy = stratMACROSS, name = "SMA", arguments = list(x=quote(Cl(mktdata)), n=200),label= "ma200")
+stratMACROSS <- add.indicator(strategy = stratMACROSS, name = "SMA", arguments = list(x=quote(Cl(mktdata)), n=30),label= "ma30" )
+stratMACROSS <- add.indicator(strategy = stratMACROSS, name = "SMA", arguments = list(x=quote(Cl(mktdata)), n=300),label= "ma300")
+stratMACROSS <- add.indicator(strategy = stratMACROSS, name = "ARFO", arguments = list(x=quote(Cl(mktdata))),label= "ARIMA1" )
+```
+
+```{r}
+stratMACROSS <- add.signal(strategy = stratMACROSS,name="sigCrossover",arguments = list(columns=c("ma50","ma200"), relationship="gte"),label="ma50.gt.ma200")
+stratMACROSS <- add.signal(strategy = stratMACROSS,name="sigCrossover",arguments = list(column=c("ma50","ma200"),relationship="lt"),label="ma50.lt.ma200")
+stratMACROSS <- add.signal(strategy = stratMACROSS,name="sigCrossover",arguments = list(columns=c("ma30","ma300"), relationship="gte"),label="ma30.gt.ma300")
+stratMACROSS <- add.signal(strategy = stratMACROSS,name="sigCrossover",arguments = list(column=c("ma30","ma300"),relationship="lt"),label="ma30.lt.ma300")
+stratMACROSS <- add.signal(strategy = stratMACROSS,name="sigCrossover",arguments = list(columns=c("X1.ARIMA1","ma200"), relationship="gte"),label="ARIMA1.gt.ma200")
+stratMACROSS <- add.signal(strategy = stratMACROSS,name="sigCrossover",arguments = list(columns=c("X1.ARIMA1","ma200"), relationship="lte"),label="ARIMA1.lt.ma200")
+```
+
+```{r}
+stratMACROSS <- add.rule(strategy = stratMACROSS,name='ruleSignal', arguments = list(sigcol="ma50.gt.ma200",sigval=TRUE, orderqty=100, ordertype='market', orderside='long'),type='enter')
+stratMACROSS <- add.rule(strategy = stratMACROSS,name='ruleSignal', arguments = list(sigcol="ma50.lt.ma200",sigval=TRUE, orderqty='all', ordertype='market', orderside='long'),type='exit')
+stratMACROSS <- add.rule(strategy = stratMACROSS,name='ruleSignal', arguments = list(sigcol="ARIMA1.gt.ma200",sigval=TRUE, orderqty=100, ordertype='market', orderside='long'),type='enter')
+stratMACROSS <- add.rule(strategy = stratMACROSS,name='ruleSignal', arguments = list(sigcol="ARIMA1.lt.ma200",sigval=TRUE, orderqty='all', ordertype='market', orderside='long'),type='exit')
+stratMACROSS <- add.rule(strategy = stratMACROSS,name='ruleSignal', arguments = list(sigcol="ma30.lt.ma300",sigval=TRUE, orderqty=100, ordertype='market', orderside='short'),type='enter')
+stratMACROSS <- add.rule(strategy = stratMACROSS,name='ruleSignal', arguments = list(sigcol="ma30.gt.ma300",sigval=TRUE, orderqty='all', ordertype='market', orderside='short'),type='exit')
+
+```
+
+```{r}
+start_t<-Sys.time()
+out<-applyStrategy(strategy=stratMACROSS , portfolios=portfolio.st)
+```
+
+
+Add dividends
+
+```{r}
+for(j in symbols){
+  q = eval(parse(text=j))
+  for(i in 1:nrow(q)) {
+  obs <- q[i,2]
+  addDiv("CARRY", j, index(obs), obs)
+  }
+}
+```
+
+Update portfolio
+```{r}
+updatePortf(portfolio.st)
+dateRange <- time(getPortfolio(portfolio.st)$summary[-1])
+updateAcct(portfolio.st,dateRange)
+updateEndEq(account.st)
+```
+
+Trade Statistics
+```{r}
+tStats <- tradeStats(Portfolios = portfolio.st, use = "trades", inclZeroDays = FALSE)
+tStats[,4:ncol(tStats)] <- round(tStats[,4:ncol(tStats)],2)
+print(data.frame(t(tStats[,c(1,2)])))
+```
+
+```{r}
+(aggPF <- sum(tStats$Gross.Profits)/-sum(tStats$Gross.Losses))
+```
+
+
+```{r}
+(aggCorrect <- mean(tStats$Percent.Positive))
+```
+
+```{r}
+(numTrades <- sum(tStats$Num.Trades))
+```
+
+```{r}
+(meanAvgWLR <- mean(tStats$Avg.WinLoss.Ratio[tStats$Avg.WinLoss.Ratio < Inf], na.rm=TRUE))
+```
+
+
+```{r}
+dStats <- dailyStats(Portfolios = portfolio.st, use="trade")
+rownames(dStats) <- gsub(".DailyEndEq","",rownames(dStats))
+print(data.frame(t(dStats)))
+durStats <- durationStatistics(Portfolio = portfolio.st, Symbols = sort(symbols),aggregate=FALSE)
+indivDurStats <- durationStatistics(Portfolio)
+print(t(durStats))
+print(t(indivDurstats))
+```
