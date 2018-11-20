@@ -84,6 +84,7 @@ dt.weighting_prev <- rbind(dt.return.this[,list(dt, symbol = "SPY", weighting = 
 dt.returns_prev <- funcRunSimpleBacktestPortfolioWeighting(dt.weighting = dt.weighting_prev,
                                                            leverage = 1)
 
-
+write.csv(x = data.frame(dt.returns_prev),
+          file = "D:/Desktop/mafn/post_trade_processing/etf_balancing.csv")
 
 
