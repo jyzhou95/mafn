@@ -100,7 +100,16 @@ funcGarchVol <- function(chr.symbol, start_date, end_date, verbose = TRUE){
   return (dt.return.this)
 }
 
+funcWriteVolatilityForecast <- function(dt.vol_forecast){
+  dt.write.this <- dt.vol_forecast[,list(dt, symbol, pred_vol)]
+  chr.symbol <- unique(dt.write.this$symbol)
+  write.csv(x = dt.write.this, file = glue("/data_acquisition_scripts/{chr.symbol}_vol_forecast.csv"))
+}
+
+
+
 dt.spy_vol_forecast <- funcGarchVol(chr.symbol = "SPY", 
+<<<<<<< HEAD
                                          start_date = "2007-01-01", 
                                          end_date = "2007-01-31")
 
@@ -108,22 +117,31 @@ dt.spy_vol_forecast <- funcGarchVol(chr.symbol = "SPY",
 dt.tlt_vol_forecast <- funcGarchVol(chr.symbol = "TLT", 
                                          start_date = "2007-01-01", 
                                          end_date = "2010-01-01")
+=======
+                                    start_date = "2008-01-10", 
+                                    end_date = "2008-01-31")
+
+
+dt.tlt_vol_forecast <- funcGarchVol(chr.symbol = "TLT", 
+                                    start_date = "2008-01-01", 
+                                    end_date = "2008-01-31")
+>>>>>>> 98a55407f9656a8fd2ec6f5c827b69395ffd83db
 
 dt.spy_plot <- ggplot() + geom_line(data = dt.spy_vol_forecast, 
                                     aes(x = dt, y = vol_90, group = 1), 
                                     color = "black", size = 1.5) +
-               geom_line(data = dt.spy_vol_forecast, 
-                         aes(x = dt, y = pred_vol, group = 1), 
-                         color = "red", size = 1.5) + theme_bw(base_size = 15) +
-               xlab("Date") + ylab("Volatility")
+  geom_line(data = dt.spy_vol_forecast, 
+            aes(x = dt, y = pred_vol, group = 1), 
+            color = "red", size = 1.5) + theme_bw(base_size = 15) +
+  xlab("Date") + ylab("Volatility")
 
 dt.tlt_plot <- ggplot() + geom_line(data = dt.tlt_vol_forecast, 
                                     aes(x = dt, y = vol_90, group = 1), 
                                     color = "black", size = 1.5) +
-                          geom_line(data = dt.tlt_vol_forecast, 
-                                    aes(x = dt, y = pred_vol, group = 1), 
-                                    color = "red", size = 1.5) + theme_bw(base_size = 15) +
-                          xlab("Date") + ylab("Volatility")
+  geom_line(data = dt.tlt_vol_forecast, 
+            aes(x = dt, y = pred_vol, group = 1), 
+            color = "red", size = 1.5) + theme_bw(base_size = 15) +
+  xlab("Date") + ylab("Volatility")
 
 ggplotly(dt.spy_plot)
 ggplotly(dt.tlt_plot)
