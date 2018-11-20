@@ -6,7 +6,7 @@ options source;
                    
                    * Time is between 9:30am and 4:00pm, retrieving SYMBOL DATE TIME and PRICE;
                    data my_temp;
-                   set taq.cq_2010:;
+                   set taq.cq_2003:;
                    where symbol in ('ORCL','TSM','ACN','UPS','RIO','HDB','GS','BLK','EL','ING','TEF',
                                     'MET','CCL','CHA','COF','ET','PRU','NOK','ROP','RSG','RCL','A','BXP',
                                     'PKX','ESS','PAA','KEP','MKL','WAT','MTD','IT','KOF','TIF','KSS','MLM',
@@ -49,7 +49,7 @@ options source;
                    Title 'Final output -- XX min interval';
                    
                    proc export data= xtemp2
-                   outfile= '/home/columbia/jyz2111/sas_test_files/tick_data_folder/year_2010/2010.csv'
+                   outfile= '/home/columbia/jyz2111/sas_test_files/tick_data_folder/year_2003/2003.csv'
                    dbms=CSV REPLACE;
                    putnames=YES;
                    run;

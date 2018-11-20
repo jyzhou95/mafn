@@ -80,19 +80,34 @@ funcGarchVol <- function(chr.symbol, start_date, end_date, verbose = TRUE){
                            refit.window="moving",
                            solver = "hybrid")
   
+  
+  spec2 = ugarchspec(
+    mean.model=list(armaOrder=c(0,0)),
+    variance.model=list(model = "sGARCH", garchOrder = c(1, 1)),
+    distribution="norm")
+  
+  modelfit<-ugarchfit(spec=spec2,data=mydata)
+  
+  garch_pred2 <- ugarchforecast(spec2,
+                           n.ahead = 1,
+                           n.roll = nrow(dt.stock[dt < start_date]),
+                           data = dt.stock[dt < start_date]$returns,
+                           out.sample = nrow(dt.stock[dt < start_date])
+                           )
+  
   dt.return.this <- dt.stock[dt >= start_date]
   dt.return.this$pred_vol <- garch_pred@forecast$density$Sigma * sqrt(252)
   return (dt.return.this)
 }
 
 dt.spy_vol_forecast <- funcGarchVol(chr.symbol = "SPY", 
-                                         start_date = "2008-01-10", 
-                                         end_date = "2008-01-31")
+                                         start_date = "2007-01-01", 
+                                         end_date = "2007-01-31")
 
 
 dt.tlt_vol_forecast <- funcGarchVol(chr.symbol = "TLT", 
-                                         start_date = "2008-01-01", 
-                                         end_date = "2008-01-31")
+                                         start_date = "2007-01-01", 
+                                         end_date = "2010-01-01")
 
 dt.spy_plot <- ggplot() + geom_line(data = dt.spy_vol_forecast, 
                                     aes(x = dt, y = vol_90, group = 1), 
@@ -112,5 +127,32 @@ dt.tlt_plot <- ggplot() + geom_line(data = dt.tlt_vol_forecast,
 
 ggplotly(dt.spy_plot)
 ggplotly(dt.tlt_plot)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+library(fGarch)
+sp5=read.table("http://faculty.chicagobooth.edu/ruey.tsay/teaching/fts/sp500.dat")#Load data
+plot(sp5,type="l")
+m1=garchFit(formula=~arma(3,0)+garch(1,1),data=sp5,trace=F)
+summary(m1)
+m2=garchFit(formula=~garch(1,1),data=sp5,trace=F,cond.dist="std")
+summary(m2)
+stresi=residuals(m2,standardize=T)
+plot(stresi,type="l")
+Box.test(stresi,10,type="Ljung")
+predict(m2,5)
+
+
 
 

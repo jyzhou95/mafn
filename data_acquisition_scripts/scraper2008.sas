@@ -7,16 +7,15 @@ options source;
                    * Time is between 9:30am and 4:00pm, retrieving SYMBOL DATE TIME and PRICE;
                    data my_temp;
                    set taq.cq_2008:;
-                   where symbol in ('TSM','ORCL','CRM','ACN','UPS','RIO','GS','HDB','BLK','LFC',
-                   'EL','ING','TEF','COF','LVS','MET','CCL','PRU','CHA','NOK',
-                   'ROP','RSG','DLR','RCL','A','PKX','BXP','ET','ESS','PAA','KEP',
-                   'WCG','GOL','MKL','WAT','MTD','TIF','IT','KSS','KOF','EXR','MAA',
-                   'ADS','REG','SQM','DPZ','RL','FBR','COG','JNPR','MLM','IEX','MTN',
-                   'BG','WLK','URI','SUI','CPT','HLF','PKG','HNP','FDS','LII','SLG',
-                   'TV','MOH','CEA','MAC','KRC','AIV','CPL','OHI','ZNH','GIL','AIZ',
-                   'YPF','CRL','CBD','ACC','RS','ACH','HAE','SBS','EPR','BPL','LPL',
-                   'AXS','HIW','CRI','MSM','MTG','SKX','CIEN','AGO','MMS','CCJ','FR',
-                   'USM','SNX','ERJ') and time between '9:30:00't and '16:00:00't;
+                   where symbol in ('ORCL','TSM','ACN','UPS','RIO','HDB','GS','BLK','EL','ING','TEF',
+                                    'MET','CCL','CHA','COF','ET','PRU','NOK','ROP','RSG','RCL','A','BXP',
+                                    'PKX','ESS','PAA','KEP','MKL','WAT','MTD','IT','KOF','TIF','KSS','MLM',
+                                    'MAA','SQM','COG','MTN','ADS','FBR','IEX','JNPR','HNP','PKG','URI','RL',
+                                    'SUI','FDS','LII','CPT','CEA','TV','BG','ZNH','SLG','AIV','OHI','MAC',
+                                    'KRC','GIL','YPF','CRL','ACH','CBD','RS','HAE','EPR','SBS','MSM','CCJ',
+                                    'BPL','USM','CIEN','HIW','MTG','SMG','SKX','MMS','FR','AUO','ERJ','JBL',
+                                    'NFX','CLB','LHO','BVN','HR','NUS','DECK','DKS','ASGN','NEA','DNP','TCO',
+                                    'FUN','CNX','GEL','NVG','BYD') and time between '9:30:00't and '16:00:00't;
                    run;
                    
                    proc sort; by symbol date time; run;
