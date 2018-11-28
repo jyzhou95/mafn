@@ -6,6 +6,7 @@ library(glue)
 library(snow)
 library(parallel)
 library(lubridate)
+library(ggplot2)
 
 funcGetAllPossiblePairs <- function(vec.stock_list){
   dt.return.this <- data.table(data.frame(t(combn(vec.stock_list, 2))))
@@ -47,6 +48,14 @@ funcCheckCointegration <- function(chr.month, dt.stocks, dt.pairs){
     flt.correlation <- cor(dt.stocks_temp[symbol == stock1]$price, 
                            dt.stocks_temp[symbol == stock2]$price, 
                            method = "pearson")
+    
+    # dt.plot_temp <- dt.stocks_temp
+    # dt.plot_temp[,id := rep(1:(nrow(dt.plot_temp)/2),2)]
+    # 
+    # ggplot(cbind(dt.stocks_temp[symbol == stock1][,list(stock1_price = price)],
+    #              dt.stocks_temp[symbol == stock2][,list(stock2_price = price)]),
+    #        aes(x = stock1_price, y = stock2_price)) + geom_point() + theme_bw(base_size = 15)
+
     
     if (flt.correlation >= 0.9){
       # Do a linear regression fit to find the residual
@@ -104,6 +113,8 @@ funcCheckCointegration <- function(chr.month, dt.stocks, dt.pairs){
                          beta = NA))
     }
   }))
+  stopCluster(cl)
+  return (dt.return.this.coint)
 }
 
 
@@ -123,8 +134,18 @@ dt.stock_pairs <- funcGetAllPossiblePairs(vec.stock_list)
 
 # Read and process data here
 dt.final_pairs <- rbindlist(lapply(c(2003:2018)), function(x){
-  dt.data <- fread("D:/intraday_stock_data/year_2003.csv")
+  dt.data <- fread(paste0("D:/Desktop/tick_data/year_", x, ".csv"))
+  
+  # Remove rows without liquidity
   dt.data <- dt.data[bid_size > 0 & ask_size > 0]
+  dt.data[,spread := ask/bid - 1]
+  
+  # Remove rows with large bid ask spread
+  dt.spread_rank <- dt.data[,list(spread_threshold = quantile(spread, 0.9)), 
+                            by = list(symbol)]
+  dt.data <- merge(dt.data, dt.spread_rank, by = c("symbol"))
+  dt.data <- dt.data[spread <= spread_threshold]
+  
   dt.data_final <- dt.data[,list(dt, symbol, price =  bid + ask / 2)]
   vec.start_months <- floor_date(seq(from = as.Date(head(dt.data$dt, 1)),
                           to = as.Date(tail(dt.data$dt, 1)),
