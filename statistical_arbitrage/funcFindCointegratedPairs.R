@@ -120,9 +120,9 @@ funcCheckCointegration <- function(chr.month, dt.stocks, dt.pairs){
     stock1 <- dt.pairs_temp$symbol1
     stock2 <- dt.pairs_temp$symbol2
     
-    # print(glue("Testing pair: {stock1} and {stock2}"))
-    # print(glue("Progress: {round(x/nrow(dt.pairs) * 100, 2)}%"))
-    
+    print(glue("Testing pair: {stock1} and {stock2}"))
+    print(glue("Progress: {round(x/nrow(dt.pairs) * 100, 2)}%"))
+
     dt.stocks_temp <- dt.stocks[symbol %in% c(as.character(stock1), 
                                               as.character(stock2))]
     
@@ -208,22 +208,8 @@ funcCheckCointegration <- function(chr.month, dt.stocks, dt.pairs){
 }
 
 
-vec.stock_list <- c('ORCL','TSM','ACN','UPS','RIO','HDB','GS','BLK','EL','ING','TEF',
-                    'MET','CCL','CHA','COF','ET','PRU','NOK','ROP','RSG','RCL','A','BXP',
-                    'PKX','ESS','PAA','KEP','MKL','WAT','MTD','IT','KOF','TIF','KSS','MLM',
-                    'MAA','SQM','COG','MTN','ADS','FBR','IEX','JNPR','HNP','PKG','URI','RL',
-                    'SUI','FDS','LII','CPT','CEA','TV','BG','ZNH','SLG','AIV','OHI','MAC',
-                    'KRC','GIL','YPF','CRL','ACH','CBD','RS','HAE','EPR','SBS','MSM','CCJ',
-                    'BPL','USM','CIEN','HIW','MTG','SMG','SKX','MMS','FR','AUO','ERJ','JBL',
-                    'NFX','CLB','LHO','BVN','HR','NUS','DECK','DKS','ASGN','NEA','DNP','TCO',
-                    'FUN','CNX','GEL','NVG','BYD')
-
-dt.stock_pairs <- funcGetAllPossiblePairs(vec.stock_list)
-
-
-
 # Read and process data here
-dt.final_pairs <- rbindlist(lapply(c(2003:2018), function(x){
+dt.final_pairs <- rbindlist(lapply(c(2007:2018), function(x){
   dt.data <- fread(paste0("D:/Desktop/tick_data/year_", x, ".csv"))
   
   # Remove rows without liquidity
@@ -243,13 +229,17 @@ dt.final_pairs <- rbindlist(lapply(c(2003:2018), function(x){
   vec.end_months <- vec.start_months + months(1) - 1
   
   dt.return.this <- rbindlist(lapply(1:length(vec.start_months), function(y){
+    print(Sys.time())
     print(glue("{vec.start_months[y]}"))
     dt.temp <- dt.data_final[dt >= vec.start_months[y] & dt <= vec.end_months[y]]
+    # Generate all possible pairs
+    dt.stock_pairs <- funcGetAllPossiblePairs(unique(dt.temp$symbol))
     dt.final_temp <- funcCheckCointegration(chr.month = vec.start_months[y],
                                             dt.stocks = dt.temp,
                                             dt.pairs = dt.stock_pairs)
     return (dt.final_temp)
   }))
+  write.csv(x = dt.return.this, paste0("D:/Desktop/mafn/statistical_arbitrage/year_", x, "_pairs.csv"))
   return (dt.return.this)
 }))
 
