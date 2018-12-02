@@ -12,83 +12,27 @@ library(forecast)
 library(dlm)
 library(tidyverse)
 library(foreach)
-library(doMC)
 library(glue)
+library(data.table)
+library(lubridate)
 
 #Supress warnings
 options("getSymbols.warning4.0" = FALSE)
 
-
-dt_raw <- rbindlist(lapply(2003:2018, function(x){
-  dt_temp <- fread(glue("mafn/statistical_arbitrage/year_{x}.csv"))
-  return (dt_temp)
-}))
-
-
-df_raw <- rbindlist(lapply(2003:2018, function(x){
-  dt_temp <- fread(glue("mafn/statistical_arbitrage/year_{x}_pairs.csv"))
-  return (dt_temp)
-}))
-
-# df_2003 = fread("mafn/statistical_arbitrage/year_2003.csv")
-# df_2004 = fread("mafn/statistical_arbitrage/year_2004.csv")
-# df_2005 = fread("mafn/statistical_arbitrage/year_2005.csv")
-#df_2006 = fread("mafn/statistical_arbitrage/year_2006.csv")
-#df_2007 = fread("mafn/statistical_arbitrage/year_2007.csv")
-#df_2008 = fread("mafn/statistical_arbitrage/year_2008.csv")
-#df_2009 = fread("mafn/statistical_arbitrage/year_2009.csv")
-#df_2010 = fread("mafn/statistical_arbitrage/year_2010.csv")
-#df_2011 = fread("mafn/statistical_arbitrage/year_2011.csv")
-#df_2012 = fread("mafn/statistical_arbitrage/year_2012.csv")
-#df_2013 = fread("mafn/statistical_arbitrage/year_2013.csv")
-#df_2014 = fread("mafn/statistical_arbitrage/year_2014.csv")
-#df_2015 = fread("mafn/statistical_arbitrage/year_2015.csv")
-#df_2016 = fread("mafn/statistical_arbitrage/year_2016.csv")
-#df_2017 = fread("mafn/statistical_arbitrage/year_2017.csv")
-#df_2018 = fread("mafn/statistical_arbitrage/year_2018.csv")
-# dt = rbind(df_2003,df_2004,df_2005)
-
-
-# df_coint_2003 = fread("mafn/statistical_arbitrage/year_2003_pairs.csv")
-# df_coint_2004 = fread("mafn/statistical_arbitrage/year_2004_pairs.csv")
-# df_coint_2005 = fread("mafn/statistical_arbitrage/year_2005_pairs.csv")
-# df_coint_2006 = fread("mafn/statistical_arbitrage/year_2006_pairs.csv")
-# df_coint_2007 = fread("mafn/statistical_arbitrage/year_2007_pairs.csv")
-# df_coint_2008 = fread("mafn/statistical_arbitrage/year_2008_pairs.csv")
-# df_coint_2009 = fread("mafn/statistical_arbitrage/year_2009_pairs.csv")
-# df_coint_2010 = fread("mafn/statistical_arbitrage/year_2010_pairs.csv")
-# df_coint_2011 = fread("mafn/statistical_arbitrage/year_2011_pairs.csv")
-# df_coint_2012 = fread("mafn/statistical_arbitrage/year_2012_pairs.csv")
-# df_coint_2013 = fread("mafn/statistical_arbitrage/year_2013_pairs.csv")
-# df_coint_2014 = fread("mafn/statistical_arbitrage/year_2014_pairs.csv")
-# df_coint_2015 = fread("mafn/statistical_arbitrage/year_2015_pairs.csv")
-# df_coint_2016 = fread("mafn/statistical_arbitrage/year_2016_pairs.csv")
-# df_coint_2017 = fread("mafn/statistical_arbitrage/year_2017_pairs.csv")
-# df_coint_2018 = fread("mafn/statistical_arbitrage/year_2018_pairs.csv")
-
-# df = rbind(df_coint_2003,df_coint_2004,df_coint_2005,df_coint_2006,df_coint_2007,df_coint_2008,df_coint_2009,df_coint_2010,df_coint_2011,df_coint_2012,df_coint_2013,df_coint_2014,df_coint_2015,df_coint_2016,df_coint_2017,df_coint_2018)
-
 prev_portfolio_val <- 50000000
+
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+parent_dir <- getwd()
 
 # Run backtest for every year
 for (year in c(2004:2018)){
-  dt <- dt_raw[year(dt) == year]
-  df <- df_raw[year(dt) == year]
+  dt <- fread(glue("D:/Desktop/tick_data/year_{year}.csv"))
+  df <- fread(glue("{parent_dir}/year_{year-1}_pairs.csv"))
   
   df$symbols = paste(df$symbol1,df$symbol2,sep=".")
   df_pairs = df[coint %in% 1,c(3,4,10)]
   
   #can adjust to get number of pairs that we want
-  df_pairs = df_pairs[duplicated(df_pairs),]
-  df_pairs = df_pairs[duplicated(df_pairs),]
-  df_pairs = df_pairs[duplicated(df_pairs),]
-  df_pairs = df_pairs[duplicated(df_pairs),]
-  df_pairs = df_pairs[duplicated(df_pairs),]
-  df_pairs = df_pairs[duplicated(df_pairs),]
-  df_pairs = df_pairs[duplicated(df_pairs),]
-  df_pairs = df_pairs[duplicated(df_pairs),]
-  df_pairs = df_pairs[duplicated(df_pairs),]
-  df_pairs = unique(df_pairs)
   df = df[symbols %in% df_pairs$symbols,]
   df$dt = paste(df$dt, "09:30:00")
   
