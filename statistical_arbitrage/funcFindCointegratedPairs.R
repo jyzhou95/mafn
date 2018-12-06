@@ -120,8 +120,8 @@ funcCheckCointegration <- function(chr.month, dt.stocks, dt.pairs){
     stock1 <- dt.pairs_temp$symbol1
     stock2 <- dt.pairs_temp$symbol2
     
-    print(glue("Testing pair: {stock1} and {stock2}"))
-    print(glue("Progress: {round(x/nrow(dt.pairs) * 100, 2)}%"))
+    # print(glue("Testing pair: {stock1} and {stock2}"))
+    # print(glue("Progress: {round(x/nrow(dt.pairs) * 100, 2)}%"))
 
     dt.stocks_temp <- dt.stocks[symbol %in% c(as.character(stock1), 
                                               as.character(stock2))]
@@ -149,12 +149,14 @@ funcCheckCointegration <- function(chr.month, dt.stocks, dt.pairs){
     
     if (flt.correlation >= 0.9){
       # Do a linear regression fit to find the residual
-      comb1 = lm(dt.stocks_temp[symbol == stock1]$price ~ dt.stocks_temp[symbol == stock2]$price)
-      comb2 = lm(dt.stocks_temp[symbol == stock2]$price ~ dt.stocks_temp[symbol == stock1]$price)
+      comb1 = lm(dt.stocks_temp[symbol == stock1]$price ~ 0 + dt.stocks_temp[symbol == stock2]$price)
+      comb2 = lm(dt.stocks_temp[symbol == stock2]$price ~ 0 + dt.stocks_temp[symbol == stock1]$price)
       
       # Find lowest ADF test value
       comb1_adf <- adf.test(comb1$residuals, k=1)
       comb2_adf <- adf.test(comb2$residuals, k=1)
+      
+      combination <- 0
       
       # Use the ADF test with the lowest ADF value
       if (comb1_adf$statistic < comb2_adf$statistic){
@@ -162,25 +164,38 @@ funcCheckCointegration <- function(chr.month, dt.stocks, dt.pairs){
         adf.test.value <- as.numeric(comb1_adf$statistic)
         # Get standard error 
         residual <- summary(comb1)$sigma
-        beta <- as.numeric(comb1$coefficients[2])
+        beta <- as.numeric(comb1$coefficients[1])
+        combination <- 1
       } else{
         adf.test.p.value <- as.numeric(comb2_adf$p.value)
         adf.test.value <- as.numeric(comb2_adf$statistic)
         # Get standard error 
         residual <- summary(comb2)$sigma
-        beta <- as.numeric(comb2$coefficients[2])
+        beta <- as.numeric(comb2$coefficients[1])
+        combination <- 2
       }
       
       if (adf.test.p.value < 0.05){
-        return (data.table(dt = chr.month,
-                           symbol1 = stock1,
-                           symbol2 = stock2,
-                           coint = 1,
-                           p_value = adf.test.p.value,
-                           test_value = adf.test.value,
-                           residual_se = residual,
-                           beta = beta
-        ))
+        if (combination == 1){
+          return (data.table(dt = chr.month,
+                             symbol1 = stock1,
+                             symbol2 = stock2,
+                             coint = 1,
+                             p_value = adf.test.p.value,
+                             test_value = adf.test.value,
+                             residual_se = residual,
+                             beta = beta))
+          
+        } else{
+          return (data.table(dt = chr.month,
+                             symbol1 = stock2,
+                             symbol2 = stock1,
+                             coint = 1,
+                             p_value = adf.test.p.value,
+                             test_value = adf.test.value,
+                             residual_se = residual,
+                             beta = beta))
+        }
       } else{
         return (data.table(dt = chr.month,
                            symbol1 = stock1,
@@ -209,7 +224,7 @@ funcCheckCointegration <- function(chr.month, dt.stocks, dt.pairs){
 
 
 # Read and process data here
-dt.final_pairs <- rbindlist(lapply(c(2007:2018), function(x){
+dt.final_pairs <- rbindlist(lapply(c(2006:2018), function(x){
   dt.data <- fread(paste0("D:/Desktop/tick_data/year_", x, ".csv"))
   
   # Remove rows without liquidity
