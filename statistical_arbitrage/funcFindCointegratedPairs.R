@@ -224,7 +224,7 @@ funcCheckCointegration <- function(chr.month, dt.stocks, dt.pairs){
 
 
 # Read and process data here
-dt.final_pairs <- rbindlist(lapply(c(2006:2018), function(x){
+dt.final_pairs <- rbindlist(lapply(c(2003:2018), function(x){
   dt.data <- fread(paste0("D:/Desktop/tick_data/year_", x, ".csv"))
   
   # Remove rows without liquidity
@@ -243,17 +243,24 @@ dt.final_pairs <- rbindlist(lapply(c(2006:2018), function(x){
                           by = "1 month"), "month")
   vec.end_months <- vec.start_months + months(1) - 1
   
-  dt.return.this <- rbindlist(lapply(1:length(vec.start_months), function(y){
-    print(Sys.time())
-    print(glue("{vec.start_months[y]}"))
-    dt.temp <- dt.data_final[dt >= vec.start_months[y] & dt <= vec.end_months[y]]
-    # Generate all possible pairs
-    dt.stock_pairs <- funcGetAllPossiblePairs(unique(dt.temp$symbol))
-    dt.final_temp <- funcCheckCointegration(chr.month = vec.start_months[y],
-                                            dt.stocks = dt.temp,
-                                            dt.pairs = dt.stock_pairs)
-    return (dt.final_temp)
-  }))
+  dt.stock_pairs <- funcGetAllPossiblePairs(unique(dt.data_final$symbol))
+  
+  dt.return.this <- funcCheckCointegration(chr.month = vec.start_months[1],
+                                           dt.stocks = dt.data_final,
+                                           dt.pairs = dt.stock_pairs)
+  
+  # dt.return.this <- rbindlist(lapply(1:length(vec.start_months), function(y){
+  #   print(Sys.time())
+  #   print(glue("{vec.start_months[y]}"))
+  #   dt.temp <- dt.data_final[dt >= vec.start_months[y] & dt <= vec.end_months[y]]
+  #   # Generate all possible pairs
+  #   dt.stock_pairs <- funcGetAllPossiblePairs(unique(dt.temp$symbol))
+  #   dt.final_temp <- funcCheckCointegration(chr.month = vec.start_months[y],
+  #                                           dt.stocks = dt.temp,
+  #                                           dt.pairs = dt.stock_pairs)
+  #   return (dt.final_temp)
+  # }))
+  
   write.csv(x = dt.return.this, paste0("D:/Desktop/mafn/statistical_arbitrage/year_", x, "_pairs.csv"))
   return (dt.return.this)
 }))

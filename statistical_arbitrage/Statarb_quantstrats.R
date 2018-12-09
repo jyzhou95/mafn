@@ -19,114 +19,71 @@ library(lubridate)
 #Supress warnings
 options("getSymbols.warning4.0" = FALSE)
 
-prev_portfolio_val <- 100000
+prev_portfolio_val <- 110717.87
 
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 parent_dir <- getwd()
 
 # Run backtest for every year
-for (year in c(2003:2018)){
-  
-  if (year > 2003){
-    dt_pairs_prev <- dt_pairs
-  }
-  
+for (year in c(2015:2018)){
   dt_price <- fread(glue("D:/Desktop/tick_data/year_{year}.csv"))
-  dt_price[,month := month(as.Date(dt))]
   
-  # When ask size is 0, set ask price to 999999.99
+  # Remove rows with a market whose width is greater than 20%
   dt_price <- dt_price[ask_size > 0 & bid_size > 0]
+  dt_price[,spread := ask / bid - 1]
+  dt_price <- dt_price[spread < 0.2]
   
-  dt_pairs <- fread(glue("{parent_dir}/year_{year}_pairs.csv"))
+  dt_pairs <- fread(glue("{parent_dir}/year_{year-1}_pairs.csv"))
   dt_pairs <- dt_pairs[coint == 1]
   
   dt_pairs$symbols = paste(dt_pairs$symbol1,dt_pairs$symbol2,sep=".")
   dt_pairs <- unique(dt_pairs, by = c("symbols"))
   
-  for (month in c(1:12)){
-    
-    print(Sys.time())
-    print(as.Date(paste0(year, "-", month, "-01")))
-    
-    if (year == 2003 & month == 1){
-      next
-    }
-    
-    prev_month <- month - 1
-    int.month <- month
-    dt_price_curr <- dt_price[month == int.month]
-    
-    if (month == 1){
-      prev_month <- 12
-      
-      # Choose top 10 by smallest test_value and avoid choosing the same stock
-      dt_pairs_delete_this <- dt_pairs_prev[month(as.Date(dt)) == prev_month][order(test_value)]
-      dt_pairs_temp <- data.table()
-      
-      for (i in 1:nrow(dt_pairs_delete_this)){
-        if (nrow(dt_pairs_temp) < 10){
-          if (nrow(dt_pairs_temp) > 0){
-            # If we are trading the symbol we skip it
-            if (length(intersect(c(dt_pairs_delete_this[i]$symbol1,
-                                   dt_pairs_delete_this[i]$symbol2),
-                                 c(dt_pairs_temp$symbol1,
-                                   dt_pairs_temp$symbol2)))){
-              # Skip it
-              next
-              
-            } else{
-              dt_pairs_temp <- rbind(dt_pairs_temp, dt_pairs_delete_this[i])
-            }
-            
-          } else{
-            dt_pairs_temp <- rbind(dt_pairs_temp, dt_pairs_delete_this[i])
-          }
+  dt_pairs <- dt_pairs[!symbol1 %in% c("AIV", "BXP", "COF", "EPR", "ESS", "GS", "KRC", "LHO", "MET", "SLG", "TCO", "SUI")]
+  dt_pairs <- dt_pairs[!symbol2 %in% c("AIV", "BXP", "COF", "EPR", "ESS", "GS", "KRC", "LHO", "MET", "SLG", "TCO", "SUI")]
+  
+  dt_pairs_temp <- data.table()
+  
+  dt_pairs <- dt_pairs[order(test_value)]
+  
+  for (i in 1:nrow(dt_pairs)){
+    if (nrow(dt_pairs_temp) < 20){
+      if (nrow(dt_pairs_temp) > 0){
+        # If we are trading the symbol we skip it
+        if (length(intersect(c(dt_pairs[i]$symbol1,
+                               dt_pairs[i]$symbol2),
+                             c(dt_pairs_temp$symbol1,
+                               dt_pairs_temp$symbol2)))){
+          # Skip it
+          next
+          
         } else{
-          break
+          dt_pairs_temp <- rbind(dt_pairs_temp, dt_pairs[i])
         }
+        
+      } else{
+        dt_pairs_temp <- rbind(dt_pairs_temp, dt_pairs[i])
       }
-      
-      dt_pairs_curr = dt_pairs_temp[month(as.Date(dt)) == prev_month][,list(symbol1, symbol2, symbols)]
     } else{
-      
-      # Choose top 10 by smallest test_value and avoid choosing
-      dt_pairs_delete_this <- dt_pairs[month(as.Date(dt)) == prev_month][order(test_value)]
-      dt_pairs_temp <- data.table()
-      
-      for (i in 1:nrow(dt_pairs_delete_this)){
-        if (nrow(dt_pairs_temp) < 10){
-          if (nrow(dt_pairs_temp) > 0){
-            # If we are trading the symbol we skip it
-            if (length(intersect(c(dt_pairs_delete_this[i]$symbol1,
-                            dt_pairs_delete_this[i]$symbol2),
-                          c(dt_pairs_temp$symbol1,
-                            dt_pairs_temp$symbol2)))){
-              # Skip it
-              next
-              
-            } else{
-              dt_pairs_temp <- rbind(dt_pairs_temp, dt_pairs_delete_this[i])
-            }
-            
-          } else{
-            dt_pairs_temp <- rbind(dt_pairs_temp, dt_pairs_delete_this[i])
-          }
-        } else{
-          break
-        }
-      }
-      
-      dt_pairs_curr = dt_pairs_temp[month(as.Date(dt)) == prev_month][,list(symbol1, symbol2, symbols)]
+      break
     }
+  }
+  
+  dt_pairs_curr = dt_pairs_temp[,list(symbol1, symbol2, symbols)]
+  
+  symbols = c()
     
-    symbols = c()
-    
-    for (i in 1:nrow(dt_pairs_curr)){
+  for (i in 1:nrow(dt_pairs_curr)){
       symb1 = dt_pairs_curr$symbol1[i]
       symb2 = dt_pairs_curr$symbol2[i]
       symb = dt_pairs_curr$symbols[i]
-      temp1 = dt_price_curr[symbol %in% symb1,]
-      temp2 = dt_price_curr[symbol %in% symb2,]
+      temp1 = dt_price[symbol == symb1]
+      temp2 = dt_price[symbol == symb2]
+      
+      if (nrow(temp1) == 0 | nrow(temp2) == 0){
+        next
+      }
+      
       df_temp = dt_pairs[symbols == symb]
       df_temp[,V1 := NULL]
       
@@ -169,6 +126,9 @@ for (year in c(2003:2018)){
     if (exists("strategy.st")){
       rm.strat(strategy.st)
     }
+    if (exists("account.st")){
+      rm.strat(account.st)
+    }
     
     
     #Set currency
@@ -184,12 +144,12 @@ for (year in c(2003:2018)){
     stock(stock.str,currency='USD',multiplier=1)
     
     #BOILERPLATE
-    init_date = as.character(as.Date(paste0(year, "-", month, "-01")))
-    .orderqty <- 100
+    init_date = paste(as.character(as.Date(paste0(year, "-", "01-01"))), "09:30:00")
+    .orderqty <- 50
     init_equity = prev_portfolio_val
     .threshold <- 0.0005
     .txnfees <- 0
-    .stoploss <- 0.4 # 0.003 or 0.3%
+    .stoploss <- 0.5 # 0.003 or 0.3%
     
     portfolio.st <- "Port.Luxor.Stop.Loss"
     account.st <- "Acct.Luxor.Stop.Loss"
@@ -343,7 +303,7 @@ for (year in c(2003:2018)){
                 type = "chain", 
                 label = "StopLoss")
     
-    out <-  applyStrategy(strategy.st, portfolios = portfolio.st)
+    out <-applyStrategy(strategy.st, portfolios = portfolio.st)
     
     
     updatePortf(portfolio.st)
@@ -376,15 +336,15 @@ for (year in c(2003:2018)){
     }))
     
     # Save results
-    write.csv(dt.summary, paste0(parent_dir, "/trading_results/", "pnl_", as.Date(paste0(year, "-", month, "-01")), ".csv"))
-    write.csv(dt.order_book, paste0(parent_dir, "/trading_results/", "orderbook_", as.Date(paste0(year, "-", month, "-01")), ".csv"))
-    write.csv(dt_pairs_curr[,list(dt = as.Date(paste0(year, "-", month, "-01")),
+    write.csv(dt.summary, paste0(parent_dir, "/trading_results/", "pnl_", year, ".csv"))
+    write.csv(dt.order_book, paste0(parent_dir, "/trading_results/", "orderbook_", year, ".csv"))
+    write.csv(dt_pairs[,list(dt = as.Date(paste0(year, "-01-01")),
                                   symbol1,
                                   symbol2)],
-              paste0(parent_dir, "/trading_results/", "pairs_", as.Date(paste0(year, "-", month, "-01")), ".csv"))
+              paste0(parent_dir, "/trading_results/", "pairs_", year, ".csv"))
     
     prev_portfolio_val <- tail(dt.summary$portfolio_val, 1)
-  }
+    print(prev_portfolio_val)
   
 }
 

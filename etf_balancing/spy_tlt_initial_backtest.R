@@ -64,8 +64,8 @@ funcCalcVolatility <- function(chr.symbol, start_date, end_date, vol_lookback = 
 }
 
 
-dt.spy <- funcCalcVolatility(chr.symbol = "SPY",start_date = "2005-01-01", end_date = Sys.Date(), vol_lookback = 90)
-dt.tlt <- funcCalcVolatility(chr.symbol = "TLT",start_date = "2005-01-01", end_date = Sys.Date(), vol_lookback = 90)
+dt.spy <- funcCalcVolatility(chr.symbol = "SPY",start_date = "2003-08-24", end_date = Sys.Date(), vol_lookback = 90)
+dt.tlt <- funcCalcVolatility(chr.symbol = "TLT",start_date = "2003-08-24", end_date = Sys.Date(), vol_lookback = 90)
 
 # Calculate portfolio allocation from volatility
 dt.return.this <- merge(dt.spy[,list(dt, spy_vol_90=vol_90, spy_pred_vol_90=pred_vol_90)],
@@ -83,6 +83,9 @@ dt.weighting_prev <- rbind(dt.return.this[,list(dt, symbol = "SPY", weighting = 
 
 dt.returns_prev <- funcRunSimpleBacktestPortfolioWeighting(dt.weighting = dt.weighting_prev,
                                                            leverage = 1)
+
+dt.returns_prev <- dt.returns_prev[dt < "2018-01-01"]
+
 
 # Plot returns
 require("PerformanceAnalytics",quietly=TRUE)
