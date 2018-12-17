@@ -4,6 +4,8 @@ library(sde)
 library(data.table)
 library(glue)
 
+source("D:/Desktop/mafn/etf_balancing/funcUsefulFunctions.R")
+
 funcInitialAnalsis <- function(dt.returns){
   # Plot first cut returns
   # require("PerformanceAnalytics",quietly=TRUE)
@@ -161,6 +163,13 @@ cor(dt.returns_etf_trading$daily_ret,
 dt.final_returns <- merge(dt.returns_etf_trading[type == "strategy",list(dt, etf_returns=daily_ret)], 
                           dt.returns_pairs_trading[type == "strategy",list(dt, pairs_trading_returns = daily_ret)], by = c("dt"))
  
+ggplot(dt.final_returns, aes(x = etf_returns - 1, y = pairs_trading_returns -1)) + 
+  geom_point() + theme_bw(base_size = 25) +
+  geom_smooth(method = "lm", se = FALSE) +
+  xlab("ETF Balancing Daily Returns") + ylab("Pairs Trading Daily Returns") + scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent)
+
+
 dt.final_returns$combined_ret <- (dt.final_returns$etf_returns * 0.9 + dt.final_returns$pairs_trading_returns * 0.1)
 dt.final_returns$combined_ret_cum <- cumprod(dt.final_returns$combined_ret)
 dt.final_returns <- dt.final_returns[,list(dt, 
